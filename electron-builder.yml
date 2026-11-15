@@ -1,0 +1,24 @@
+# E-CLASS Windows installer/executable branding.
+appId: ph.eclass.desktop
+productName: E-CLASS
+asar: true
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist-electron/**/*
+  - package.json
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/icon.png
+    to: icon.png
+win:
+  icon: build/icon.ico
+  target:
+    - nsis
+nsis:
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  oneClick: false
+  allowToChangeInstallationDirectory: true

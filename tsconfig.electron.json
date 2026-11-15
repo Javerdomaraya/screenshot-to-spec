@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "electron/main.ts",
+    "electron/preload.ts",
+    "electron/security.ts",
+    "electron/db/**/*.ts",
+    "electron/db/**/*.d.ts",
+    "electron/ipc/**/*.ts",
+    "electron/services/**/*.ts",
+    "shared/**/*.ts"
+  ]
+}

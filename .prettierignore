@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+dist-electron
+release
+.output
+.vinxi
+.tanstack
+.nitro
+.wrangler
+.superpowers
+outputs
+docs/archive
+pnpm-lock.yaml
+package-lock.json
+bun.lock
+routeTree.gen.ts
