@@ -2,7 +2,7 @@ import { validateAssignmentConflicts } from "@/lib/conflicts";
 import { normalizeSchoolYear } from "../../shared/school-year";
 import { buildImportPreview, importFields, normalizeImportName } from "@/lib/imports/importRecords";
 import type { ImportRow, ImportTarget } from "@/lib/imports/importTypes";
-import { SCHOOL_ADDRESS, SCHOOL_NAME } from "@/lib/schoolBrand";
+import { SCHOOL_NAME, SCHOOL_REPORT_DEFAULTS } from "@/lib/schoolBrand";
 import { toast } from "sonner";
 import { schoolDataFromCatalog, catalogReplacementFromSchoolData } from "./catalogAdapter";
 import {
@@ -97,6 +97,7 @@ export interface LoadThresholds {
 
 export interface SchoolSettings {
   schoolName: string;
+  reportSchoolName?: string;
   schoolYear: string;
   preparedBy: string;
   schoolHead: string;
@@ -399,7 +400,7 @@ export const makeSampleData = (): SchoolData => ({
   ],
   settings: {
     schoolName: SCHOOL_NAME,
-    schoolAddress: SCHOOL_ADDRESS,
+    ...SCHOOL_REPORT_DEFAULTS,
     schoolYear: "2025-2026",
     preparedBy: "",
     schoolHead: "",
@@ -762,7 +763,10 @@ export const dataService = {
     const request = { ...structuredClone(settings), schoolYear: normalizeSchoolYear(settings.schoolYear) };
     const operation = pendingCatalogWrite.then(async () => {
       if (!desktopApi()) {
-        browserPreview = { ...browserPreview, settings: request };
+        const definedSettings = Object.fromEntries(
+          Object.entries(request).filter(([, value]) => value !== undefined),
+        ) as Partial<SchoolSettings>;
+        browserPreview = { ...browserPreview, settings: { ...browserPreview.settings, ...definedSettings } };
         return structuredClone(browserPreview);
       }
       if (revision === null || !loadedCatalogSnapshot || !loadedDesktopData)
@@ -773,6 +777,13 @@ export const dataService = {
         schoolYear: request.schoolYear,
         preparedBy: request.preparedBy,
         schoolHead: request.schoolHead,
+        ...(request.reportSchoolName !== undefined ? { reportSchoolName: request.reportSchoolName } : {}),
+        ...(request.region !== undefined ? { region: request.region } : {}),
+        ...(request.division !== undefined ? { division: request.division } : {}),
+        ...(request.district !== undefined ? { district: request.district } : {}),
+        ...(request.schoolAddress !== undefined ? { schoolAddress: request.schoolAddress } : {}),
+        ...(request.preparedByTitle !== undefined ? { preparedByTitle: request.preparedByTitle } : {}),
+        ...(request.approvedByTitle !== undefined ? { approvedByTitle: request.approvedByTitle } : {}),
         thresholds: request.thresholds,
       }));
       const previous = loadedDesktopData;

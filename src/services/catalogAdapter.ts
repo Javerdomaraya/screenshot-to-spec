@@ -1,6 +1,6 @@
 import type { CatalogSnapshot, CatalogReplacement } from "../../shared/electron-api";
 import { normalizeSchoolYear } from "../../shared/school-year";
-import { normalizeSchoolName } from "@/lib/schoolBrand";
+import { applySchoolReportDefaults, normalizeSchoolName } from "@/lib/schoolBrand";
 import type { SchoolData, SchoolSettings } from "./dataService";
 
 const pad = (value: string | undefined, fallback = "") => value ?? fallback;
@@ -14,8 +14,10 @@ export function schoolDataFromCatalog(snapshot: CatalogSnapshot): SchoolData {
     snapshot.bellSchedules.find((b) => b.id === snapshot.sections[0]?.bell_schedule_id) ??
     fallbackSchedule;
 
-  const settings: SchoolSettings = {
+  const configuredReport = Object.prototype.hasOwnProperty.call(snapshot.settings, "report_school_name");
+  const settings: SchoolSettings = applySchoolReportDefaults({
     schoolName: normalizeSchoolName(pad(snapshot.settings["school_name"])),
+    ...(configuredReport ? { reportSchoolName: pad(snapshot.settings["report_school_name"]) } : {}),
     schoolYear: normalizeSchoolYear(pad(snapshot.settings["school_year"], "2026-2027")),
     preparedBy: pad(snapshot.settings["prepared_by"]),
     schoolHead: pad(snapshot.settings["approved_by"]),
@@ -32,7 +34,7 @@ export function schoolDataFromCatalog(snapshot: CatalogSnapshot): SchoolData {
       underloadBelow: Number(snapshot.settings["underload_below"] ?? 18),
       balancedMax: Number(snapshot.settings["balanced_max"] ?? 30),
     },
-  };
+  }, configuredReport);
 
   return {
     bellSchedules: snapshot.bellSchedules.map((schedule) => ({

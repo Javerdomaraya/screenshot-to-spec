@@ -12,7 +12,7 @@ import {
   type ProgramRow,
 } from "@/lib/scheduling/programTimetable";
 import type { Assignment, SchoolData, Term } from "@/services/dataService";
-import { SCHOOL_ADDRESS, schoolLogoSrc, schoolDisplayName } from "@/lib/schoolBrand";
+import { applySchoolReportDefaults, schoolDisplayName } from "@/lib/schoolBrand";
 import { formatSchoolYear } from "../../../shared/school-year";
 
 interface ProgramTimetableProps {
@@ -50,7 +50,10 @@ export function ProgramTimetable({
       : mode === "rooms"
         ? "ROOM PROGRAM"
         : `${section ? `GRADE ${section.gradeLevel} ` : ""}CLASS PROGRAM`;
-  const settings = data.settings;
+  const settings = applySchoolReportDefaults(
+    data.settings,
+    data.settings.reportSchoolName !== undefined,
+  );
   const rows = getProgramRows(data, mode, entities[0]!.id, assignments);
   const conflictIds =
     knownConflictIds ??
@@ -93,16 +96,14 @@ export function ProgramTimetable({
               width="52"
               height="52"
             />
-            <img className="program-school-logo" src={schoolLogoSrc()}
-              alt="School logo" width="52" height="52" />
           </div>
           <p className="program-republic">Republic of the Philippines</p>
           <p className="program-department">Department of Education</p>
           {settings.region && <p>{settings.region}</p>}
           {settings.division && <p>{settings.division}</p>}
           {settings.district && <p>{settings.district}</p>}
-          <h2>{schoolDisplayName(settings.schoolName)}</h2>
-          <p>{settings.schoolAddress?.trim() || SCHOOL_ADDRESS}</p>
+          <h2>{settings.reportSchoolName?.trim() || schoolDisplayName(settings.schoolName)}</h2>
+          {settings.schoolAddress?.trim() && <p>{settings.schoolAddress}</p>}
         </header>
       )}
       <div className="program-title">

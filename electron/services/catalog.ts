@@ -1,5 +1,6 @@
 import type { SchoolDatabase } from "../db/database";
 import { normalizeSchoolYear } from "../../shared/school-year";
+import { applySchoolReportDefaults, type SchoolReportProfile } from "../../shared/school-report-profile";
 import { normalizeNameKey } from "../db/name-normalization";
 import {
   teachersRepository,
@@ -50,8 +51,8 @@ function requiredText(value: unknown, field: string, maxLength = 200): string {
   return value.trim();
 }
 
-function optionalText(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length > 500) return invalid(`${field} must be text.`);
+function optionalText(value: unknown, field: string, maxLength = 500): string {
+  if (typeof value !== "string" || value.length > maxLength) return invalid(`${field} must be text.`);
   return value.trim();
 }
 
@@ -355,6 +356,20 @@ export function createCatalogService(db: SchoolDatabase) {
       invalid("School year must be two consecutive years (for example, 2026–2027).");
     const preparedBy = optionalText(body["preparedBy"], "Prepared by");
     const schoolHead = optionalText(body["schoolHead"], "School head");
+    const reportSettings: [string, string][] = [];
+    const reportFields = [
+      ["reportSchoolName", "report_school_name", "Report school name", 250],
+      ["region", "region", "Region", 500],
+      ["division", "division", "Division", 500],
+      ["district", "district", "District", 500],
+      ["schoolAddress", "school_address", "School address", 500],
+      ["preparedByTitle", "prepared_by_title", "Prepared by title", 500],
+      ["approvedByTitle", "approved_by_title", "Approved by title", 500],
+    ] as const;
+    for (const [field, key, label, maxLength] of reportFields) {
+      if (body[field] !== undefined)
+        reportSettings.push([key, optionalText(body[field], label, maxLength)]);
+    }
     const thresholds = record(body["thresholds"]);
     const underload = integer(thresholds["underloadBelow"], "Underload threshold", 0, 168);
     const balanced = integer(thresholds["balancedMax"], "Balanced threshold", 0, 168);
@@ -368,6 +383,18 @@ export function createCatalogService(db: SchoolDatabase) {
       settings.set("school_year", schoolYear);
       settings.set("prepared_by", preparedBy);
       settings.set("approved_by", schoolHead);
+      if (reportSettings.length && settings.get("report_school_name") === null) {
+        const currentProfile: SchoolReportProfile & { schoolName: string } = { schoolName };
+        for (const [field, key] of reportFields) {
+          const stored = settings.get(key);
+          if (stored !== null) currentProfile[field] = stored;
+        }
+        // A first partial edit establishes the full effective profile so that
+        // explicitly cleared fields remain clear and omitted defaults survive.
+        const initialProfile = applySchoolReportDefaults(currentProfile, false);
+        for (const [field, key] of reportFields) settings.set(key, initialProfile[field] ?? "");
+      }
+      for (const [key, value] of reportSettings) settings.set(key, value);
       settings.set("underload_below", String(underload));
       settings.set("balanced_max", String(balanced));
       incrementRevision(db);

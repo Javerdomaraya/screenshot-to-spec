@@ -4,6 +4,8 @@ E-CLASS is a school scheduling workspace for managing teachers, sections, subjec
 
 Configured for **ICT High School of Eastern Biliran**, located in **Caibiran, Biliran**.
 
+Printed programs use the school's full official name, Region VIII header, and detailed Palengke address. Edit these in **Settings → Timetable header**. Signatory names start blank; the preparer and approver titles are editable in **School information**.
+
 ## Start developing
 
 Install Node.js and npm, then run these commands from the project folder:
@@ -80,7 +82,7 @@ chosen password must contain at least 12 characters.
 
 Preserve the existing Git history: do not force push or rebase, amend, or squash commits that have already been pushed. Use normal commits so project history and connected integrations stay in sync.
 
-This copy has no `.git` directory. To upload these cleaned sources to the existing project, clone its existing GitHub repository into a separate folder, copy the source files into that clone, and retain the clone's `.git` directory. Review the changes, run the relevant checks above, and commit normally on your project branch.
+In an existing Git checkout, review the changes, run the relevant checks above, and commit normally on your project branch. If you started from a downloaded copy without a `.git` directory, clone the existing GitHub repository into a separate folder, copy the source files into that clone, and retain the clone's `.git` directory.
 
 Apply the file moves as well as copying the updated files: copying alone leaves the old locations behind. Use the [folder move guide](docs/README.md#folder-move-guide) to remove the former copies from the clone, then review Git's additions and deletions before committing.
 

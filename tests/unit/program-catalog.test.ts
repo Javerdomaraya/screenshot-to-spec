@@ -205,7 +205,7 @@ describe("class-program catalog projection", () => {
     });
   });
 
-  it("provides empty program metadata for an empty catalog without inventing school details", () => {
+  it("defaults an initially blank installation report without changing blank school identity or names", () => {
     const data = schoolDataFromCatalog({
       ...snapshot,
       sections: [],
@@ -218,15 +218,54 @@ describe("class-program catalog projection", () => {
     expect(data.programTimeSlots).toEqual([]);
     expect(data.timeSlots).toEqual([]);
     expect(data.settings).toMatchObject({
-      region: "",
-      division: "",
-      district: "",
-      schoolAddress: "",
-      preparedByTitle: "",
-      approvedByTitle: "",
+      schoolName: "",
+      reportSchoolName: "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+      region: "Region VIII - Eastern Visayas",
+      division: "Schools Division Office of Biliran",
+      district: "Caibiran District II",
+      schoolAddress: "Brgy. Palengke, 6565 Caibiran, Biliran Province",
+      preparedBy: "", schoolHead: "",
+      preparedByTitle: "Principal I",
+      approvedByTitle: "Public Schools District Supervisor",
       attestedBy: "",
       attestedByTitle: "",
       classAdviserLabel: "",
     });
+  });
+  it.each([
+    "ICT High School of Eastern Biliran",
+    "ICT High School of Eastern Biliran Supreme Secondary Learner Government",
+    "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+  ])("adopts the initial report defaults for known school identity %s and preserves overrides", (schoolName) => {
+    const data = schoolDataFromCatalog({ ...snapshot, settings: {
+      school_name: schoolName, region: "  ", division: "Custom division", district: "",
+      school_address: "Caibiran, Biliran", prepared_by: "Configured Person", prepared_by_title: "Custom role",
+    } });
+    expect(data.settings).toMatchObject({
+      reportSchoolName: "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+      region: "Region VIII - Eastern Visayas", division: "Custom division", district: "Caibiran District II",
+      schoolAddress: "Brgy. Palengke, 6565 Caibiran, Biliran Province",
+      preparedBy: "Configured Person", preparedByTitle: "Custom role",
+      approvedByTitle: "Public Schools District Supervisor",
+    });
+  });
+  it("preserves explicitly saved empty report fields instead of restoring installation defaults", () => {
+    const data = schoolDataFromCatalog({ ...snapshot, settings: {
+      school_name: "ICT High School of Eastern Biliran", report_school_name: "",
+      region: "", division: "", district: "", school_address: "",
+      prepared_by_title: "", approved_by_title: "",
+    } });
+    expect(data.settings).toMatchObject({
+      reportSchoolName: "", region: "", division: "", district: "", schoolAddress: "",
+      preparedByTitle: "", approvedByTitle: "",
+    });
+  });
+  it("keeps a custom school's unconfigured profile empty", () => {
+    const data = schoolDataFromCatalog({ ...snapshot, settings: { school_name: "Another School" } });
+    expect(data.settings).toMatchObject({
+      schoolName: "Another School", region: "", division: "", district: "", schoolAddress: "",
+      preparedByTitle: "", approvedByTitle: "", preparedBy: "", schoolHead: "",
+    });
+    expect(data.settings.reportSchoolName || "").toBe("");
   });
 });

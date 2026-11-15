@@ -224,7 +224,7 @@ describe("class-program timetable", () => {
     expect(pages.map((page) => page.length)).toEqual([3, 1, 1]);
   });
 
-  it("resolves the seal beside the packaged Electron renderer", () => {
+  it("resolves the DepEd seal beside the packaged Electron renderer", () => {
     vi.stubEnv("BASE_URL", "./");
     const data = fixture();
     render(
@@ -239,10 +239,6 @@ describe("class-program timetable", () => {
     expect(new URL(image.getAttribute("src")!, "file:///C:/ECLASS/renderer/index.html").href).toBe(
       "file:///C:/ECLASS/renderer/deped-seal.png",
     );
-    const schoolLogo = screen.getByAltText("School logo");
-    expect(new URL(schoolLogo.getAttribute("src")!, "file:///C:/ECLASS/renderer/index.html").href).toBe(
-      "file:///C:/ECLASS/renderer/ICT.png",
-    );
   });
 
   it("handles an empty catalog without an empty table", () => {
@@ -250,4 +246,65 @@ describe("class-program timetable", () => {
     expect(screen.getByText("Choose a section to view its program.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
+});
+
+it("uses the complete official report header and leaves signature names blank", () => {
+  const data = fixture();
+  render(
+    <ProgramTimetable
+      data={data}
+      assignments={[]}
+      mode="section"
+      entities={[data.sections[0]!]}
+      showSignatures
+    />,
+  );
+  const header = within(document.querySelector(".program-school-header") as HTMLElement);
+  expect(
+    header.getByRole("heading", {
+      name: "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+    }),
+  ).toBeInTheDocument();
+  expect(header.getByText("Region VIII - Eastern Visayas")).toBeInTheDocument();
+  expect(header.getByText("Schools Division Office of Biliran")).toBeInTheDocument();
+  expect(header.getByText("Caibiran District II")).toBeInTheDocument();
+  expect(header.getByText("Brgy. Palengke, 6565 Caibiran, Biliran Province")).toBeInTheDocument();
+  expect(header.getAllByRole("img")).toHaveLength(1);
+  expect(screen.getByText("Principal I")).toBeInTheDocument();
+  expect(screen.getByText("Public Schools District Supervisor")).toBeInTheDocument();
+  const names = document.querySelectorAll(".program-signature strong");
+  expect(names).toHaveLength(2);
+  expect([...names].every((name) => name.textContent?.trim() === "")).toBe(true);
+});
+
+it("preserves a custom report profile and intentionally cleared header fields", () => {
+  const data = fixture();
+  data.settings = {
+    ...data.settings,
+    schoolName: "A different school",
+    reportSchoolName: "Custom printed name",
+    region: "",
+    division: "",
+    district: "",
+    schoolAddress: "",
+    preparedBy: "Configured preparer",
+    schoolHead: "Configured approver",
+    preparedByTitle: "",
+    approvedByTitle: "",
+  };
+  render(
+    <ProgramTimetable
+      data={data}
+      assignments={[]}
+      mode="section"
+      entities={[data.sections[0]!]}
+      showSignatures
+    />,
+  );
+  const header = document.querySelector(".program-school-header") as HTMLElement;
+  expect(within(header).getByRole("heading", { name: "Custom printed name" })).toBeInTheDocument();
+  expect(header).not.toHaveTextContent("Biliran");
+  expect(screen.getByText("Configured preparer")).toBeInTheDocument();
+  expect(screen.getByText("Configured approver")).toBeInTheDocument();
+  expect(screen.queryByText("Principal I")).not.toBeInTheDocument();
 });

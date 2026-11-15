@@ -142,6 +142,82 @@ describe("dataService Electron bridge", () => {
     expect(saved.settings.schoolYear).toBe("2027-2028");
     expect(saved.assignments).toHaveLength(0);
   });
+  it("forwards defined report settings and keeps cleared fields empty after a reload", async () => {
+    const catalog = fakeApi();
+    const profile = {
+      reportSchoolName: "Official report name", region: "Region VIII", division: "Biliran Division",
+      district: "District II", schoolAddress: "Palengke", preparedByTitle: "Principal I",
+      approvedByTitle: "District Supervisor",
+    };
+    const changed = { ...snapshot, revision: 1, settings: { ...snapshot.settings,
+      report_school_name: profile.reportSchoolName, region: profile.region, division: profile.division,
+      district: profile.district, school_address: profile.schoolAddress,
+      prepared_by_title: profile.preparedByTitle, approved_by_title: profile.approvedByTitle,
+    } };
+    const saveSettings = vi.fn().mockResolvedValue({ ok: true, data: changed });
+    Object.assign(window.api!.catalog, { saveSettings });
+    const { dataService } = await import("../../src/services/dataService");
+    const initial = await dataService.getAll();
+    const saved = await dataService.saveSettings({ ...initial.settings, ...profile });
+    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining(profile));
+    expect(saved.settings).toMatchObject(profile);
+    const cleared = { ...changed, revision: 2, settings: { ...changed.settings,
+      report_school_name: "", region: "", school_address: "", prepared_by_title: "", approved_by_title: "",
+    } };
+    saveSettings.mockResolvedValue({ ok: true, data: cleared });
+    await dataService.saveSettings({ ...saved.settings, reportSchoolName: "", region: "", schoolAddress: "",
+      preparedByTitle: "", approvedByTitle: "" });
+    expect(saveSettings).toHaveBeenLastCalledWith(expect.objectContaining({
+      reportSchoolName: "", region: "", schoolAddress: "", preparedByTitle: "", approvedByTitle: "",
+    }));
+    catalog.snapshot.mockResolvedValue({ ok: true, data: cleared });
+    expect((await dataService.getAll()).settings).toMatchObject({
+      reportSchoolName: "", region: "", schoolAddress: "", preparedByTitle: "", approvedByTitle: "",
+    });
+    expect(localStorage.length).toBe(0);
+  });
+  it("omits undefined optional report fields from older settings requests", async () => {
+    fakeApi();
+    const saveSettings = vi.fn().mockResolvedValue({ ok: true, data: snapshot });
+    Object.assign(window.api!.catalog, { saveSettings });
+    const { dataService } = await import("../../src/services/dataService");
+    const initial = await dataService.getAll();
+    await dataService.saveSettings({
+      schoolName: initial.settings.schoolName, schoolYear: initial.settings.schoolYear,
+      preparedBy: "", schoolHead: "", thresholds: initial.settings.thresholds,
+    });
+    expect(saveSettings).toHaveBeenCalledWith({
+      expectedRevision: 0, schoolName: "Test School", schoolYear: "2026-2027",
+      preparedBy: "", schoolHead: "", thresholds: { underloadBelow: 18, balancedMax: 30 },
+    });
+  });
+  it("starts the browser report profile with the official header and no person's name", async () => {
+    const { dataService } = await import("../../src/services/dataService");
+    expect((await dataService.getAll()).settings).toMatchObject({
+      schoolName: "ICT High School of Eastern Biliran",
+      reportSchoolName: "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+      region: "Region VIII - Eastern Visayas", division: "Schools Division Office of Biliran",
+      district: "Caibiran District II", schoolAddress: "Brgy. Palengke, 6565 Caibiran, Biliran Province",
+      preparedBy: "", schoolHead: "", preparedByTitle: "Principal I",
+      approvedByTitle: "Public Schools District Supervisor",
+    });
+  });
+  it("preserves omitted browser profile fields while allowing explicit empty values", async () => {
+    const { dataService } = await import("../../src/services/dataService");
+    const data = await dataService.getAll();
+    const olderRequest = {
+      schoolName: data.settings.schoolName, schoolYear: data.settings.schoolYear,
+      preparedBy: "", schoolHead: "", thresholds: data.settings.thresholds,
+    };
+    expect((await dataService.saveSettings(olderRequest)).settings).toMatchObject({
+      reportSchoolName: "INFORMATION AND COMMUNICATIONS TECHNOLOGY HIGH SCHOOL OF EASTERN BILIRAN",
+      region: "Region VIII - Eastern Visayas", preparedByTitle: "Principal I",
+    });
+    await dataService.saveSettings({ ...olderRequest, reportSchoolName: "", region: "", preparedByTitle: "" });
+    expect((await dataService.getAll()).settings).toMatchObject({
+      reportSchoolName: "", region: "", preparedByTitle: "",
+    });
+  });
   it("persists the supplied school identity only when the SQLite school name is blank", async () => {
     const catalog = fakeApi();
     catalog.snapshot.mockResolvedValueOnce({ ok: true, data: {

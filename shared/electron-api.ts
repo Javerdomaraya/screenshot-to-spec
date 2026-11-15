@@ -121,6 +121,13 @@ export interface SchoolSettingsUpdate {
   schoolYear: string;
   preparedBy: string;
   schoolHead: string;
+  reportSchoolName?: string;
+  region?: string;
+  division?: string;
+  district?: string;
+  schoolAddress?: string;
+  preparedByTitle?: string;
+  approvedByTitle?: string;
   thresholds: { underloadBelow: number; balancedMax: number };
 }
 

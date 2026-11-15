@@ -1040,6 +1040,11 @@ function validateSchoolSettings(settings: SchoolSettings): string | null {
     return "School year must contain two consecutive years.";
   if (settings.preparedBy.length > 500 || settings.schoolHead.length > 500)
     return "Signatory names must not exceed 500 characters.";
+  if ((settings.reportSchoolName ?? "").length > 250)
+    return "The printed school name must not exceed 250 characters.";
+  if ([settings.region, settings.division, settings.district, settings.schoolAddress,
+    settings.preparedByTitle, settings.approvedByTitle].some((value) => (value ?? "").length > 500))
+    return "Report header details and signatory titles must not exceed 500 characters.";
   const { underloadBelow, balancedMax } = settings.thresholds;
   if (![underloadBelow, balancedMax].every((number) => Number.isInteger(number) && number >= 0 && number <= 168))
     return "Workload thresholds must be whole numbers between 0 and 168.";
@@ -1059,7 +1064,9 @@ function SettingsPanel({
   saving: boolean;
   error: string;
 }) {
-  const change = (key: "schoolName" | "schoolYear" | "preparedBy" | "schoolHead", value: string) =>
+  const change = (key: "schoolName" | "schoolYear" | "preparedBy" | "schoolHead"
+    | "reportSchoolName" | "region" | "division" | "district" | "schoolAddress"
+    | "preparedByTitle" | "approvedByTitle", value: string) =>
     setSettings({ ...settings, [key]: value });
   const dirty = JSON.stringify(settings) !== JSON.stringify(savedSettings);
   const validation = validateSchoolSettings(settings);
@@ -1089,7 +1096,7 @@ function SettingsPanel({
             <span>School name</span>
             <Textarea aria-label="School name" rows={3} maxLength={250} value={settings.schoolName}
               onChange={(event) => change("schoolName", event.target.value)} />
-            <small>Enter the official name exactly as it should appear on reports.</small>
+            <small>The shorter school name used in the workspace. Set the full printed name below.</small>
           </label>
           <label className="form-field">
             <span>School year</span>
@@ -1105,14 +1112,63 @@ function SettingsPanel({
             <Input aria-label="Prepared by" value={settings.preparedBy} maxLength={500}
               onChange={(event) => change("preparedBy", event.target.value)}
               placeholder="Name or position" />
-            <small>Optional signature on printed class programs.</small>
+            <small>Leave blank until the preparer's name is confirmed.</small>
           </label>
           <label className="form-field">
-            <span>Noted by School Head</span>
-            <Input aria-label="Noted by School Head" value={settings.schoolHead} maxLength={500}
+            <span>Approved by</span>
+            <Input aria-label="Approved by" value={settings.schoolHead} maxLength={500}
               onChange={(event) => change("schoolHead", event.target.value)}
-              placeholder="School head's name" />
-            <small>Optional signatory for your school reports.</small>
+              placeholder="Approver's name" />
+            <small>Leave blank until the approver's name is confirmed.</small>
+          </label>
+          <label className="form-field">
+            <span>Prepared by title</span>
+            <Input aria-label="Prepared by title" value={settings.preparedByTitle ?? ""} maxLength={500}
+              onChange={(event) => change("preparedByTitle", event.target.value)} />
+            <small>Position shown below the preparer's name.</small>
+          </label>
+          <label className="form-field">
+            <span>Approved by title</span>
+            <Input aria-label="Approved by title" value={settings.approvedByTitle ?? ""} maxLength={500}
+              onChange={(event) => change("approvedByTitle", event.target.value)} />
+            <small>Position shown below the approver's name.</small>
+          </label>
+        </div>
+      </section>
+      <section className="panel settings-panel">
+        <div className="settings-heading">
+          <span className="settings-icon"><FileText /></span>
+          <div>
+            <div className="eyebrow">PRINTED PROGRAMS</div>
+            <h2>Timetable header</h2>
+            <p>Use the full school identity and address from your official class programs.</p>
+          </div>
+        </div>
+        <div className="settings-form">
+          <label className="form-field settings-school-name">
+            <span>Printed school name</span>
+            <Textarea aria-label="Printed school name" rows={3} maxLength={250}
+              value={settings.reportSchoolName ?? ""}
+              onChange={(event) => change("reportSchoolName", event.target.value)} />
+            <small>Leave blank to use the workspace's school name.</small>
+          </label>
+          {([
+            { key: "region", label: "Region" },
+            { key: "division", label: "Division" },
+            { key: "district", label: "District" },
+          ] as const).map(({ key, label }) => (
+            <label className="form-field" key={key}>
+              <span>{label}</span>
+              <Input aria-label={label} value={settings[key] ?? ""} maxLength={500}
+                onChange={(event) => change(key, event.target.value)} />
+            </label>
+          ))}
+          <label className="form-field settings-school-name">
+            <span>School address</span>
+            <Textarea aria-label="School address" rows={2} maxLength={500}
+              value={settings.schoolAddress ?? ""}
+              onChange={(event) => change("schoolAddress", event.target.value)} />
+            <small>Blank header lines are omitted from printed reports.</small>
           </label>
         </div>
       </section>
